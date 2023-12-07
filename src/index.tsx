@@ -260,9 +260,9 @@ export class NexusRedux<T> {
             const localData: T[] = JSON.parse(localDataString);
             console.log(`localData X|=========>`, JSON.stringify(localData));
 
-            this.startLoadData();
-
             this.data = localData;
+
+            this.startLoadData();
           } catch {
             (err: any) => {
               this.error = `ERROR NEXUSSYNC_001:` + JSON.stringify(err);
