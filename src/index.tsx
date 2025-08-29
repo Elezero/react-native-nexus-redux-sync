@@ -15,12 +15,12 @@ export interface NexusReduxProps<T> {
   consoleDebug?: boolean;
   idAttributeName?: keyof T;
   modificationDateAttributeName?: keyof T;
-    getFilterParams?: {
-   orderBy?: {
-     key: keyof T;
+  getFilterParams?: {
+    orderBy?: {
+      key: keyof T;
       order: 'asc' | 'desc';
-   }
-  }
+    };
+  };
   startLoadData: () => void;
   isOnline: boolean;
   remoteMethods?: {
@@ -38,11 +38,11 @@ export class NexusRedux<T> {
   idAttributeName?: keyof T;
   modificationDateAttributeName?: keyof T;
   getFilterParams?: {
-   orderBy?: {
-     key: keyof T;
+    orderBy?: {
+      key: keyof T;
       order: 'asc' | 'desc';
-   }
-  }
+    };
+  };
   isOnline?: boolean;
   remoteMethods?: {
     GET?: () => Promise<T[]>;
@@ -89,7 +89,6 @@ export class NexusRedux<T> {
     this.startLoadData = props.startLoadData;
 
     this.getFilterParams = props.getFilterParams;
-
 
     this.consoleDebug = props.consoleDebug;
     this.idAttributeName = props.idAttributeName;
@@ -242,11 +241,11 @@ export class NexusRedux<T> {
             if (this.getFilterParams && this.getFilterParams.orderBy) {
               const { key, order } = this.getFilterParams.orderBy;
               localData = localData.sort((a, b) => {
-              const valueA = a[key];
-              const valueB = b[key];
-              if (valueA < valueB) return order === 'asc' ? -1 : 1;
-              if (valueA > valueB) return order === 'asc' ? 1 : -1;
-              return 0;
+                const valueA = a[key];
+                const valueB = b[key];
+                if (valueA < valueB) return order === 'asc' ? -1 : 1;
+                if (valueA > valueB) return order === 'asc' ? 1 : -1;
+                return 0;
               });
             }
 
@@ -444,9 +443,10 @@ export class NexusRedux<T> {
 
               return itemDeleted;
             } catch (err: any) {
-              this.consoleDebug &&
+              if (this.consoleDebug) {
                 // console.log(`err C|=========>`, JSON.stringify(err));
-              this.error = `ERROR NEXUSSYNC_020:` + JSON.stringify(err);
+                this.error = `ERROR NEXUSSYNC_020:` + JSON.stringify(err);
+              }
               return null;
             }
           })
