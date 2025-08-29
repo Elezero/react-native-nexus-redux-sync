@@ -15,6 +15,12 @@ export interface NexusReduxProps<T> {
   consoleDebug?: boolean;
   idAttributeName?: keyof T;
   modificationDateAttributeName?: keyof T;
+    getFilterParams?: {
+   orderBy?: {
+     key: keyof T;
+      order: 'asc' | 'desc';
+   }
+  }
   startLoadData: () => void;
   isOnline: boolean;
   remoteMethods?: {
@@ -28,10 +34,15 @@ export interface NexusReduxProps<T> {
 export class NexusRedux<T> {
   public data: T[];
   async_DATA_KEY: string;
-
   consoleDebug?: boolean;
   idAttributeName?: keyof T;
   modificationDateAttributeName?: keyof T;
+  getFilterParams?: {
+   orderBy?: {
+     key: keyof T;
+      order: 'asc' | 'desc';
+   }
+  }
   isOnline?: boolean;
   remoteMethods?: {
     GET?: () => Promise<T[]>;
@@ -77,13 +88,16 @@ export class NexusRedux<T> {
 
     this.startLoadData = props.startLoadData;
 
+    this.getFilterParams = props.getFilterParams;
+
+
     this.consoleDebug = props.consoleDebug;
     this.idAttributeName = props.idAttributeName;
     this.modificationDateAttributeName = props.modificationDateAttributeName;
     this.remoteMethods = props.remoteMethods;
-    this.startLoadData = props.startLoadData;
     this.isOnline = props.isOnline;
 
+    // console.log(`ABOUT TO INITIAL FUNCTION | --------------`);
     this.initialFunction();
   }
 
@@ -110,6 +124,7 @@ export class NexusRedux<T> {
   private async initialFunction() {
     this.checkAndSaveLocalKeys();
 
+    // console.log(`this.isOnline |=========>`, JSON.stringify(this.isOnline));
     if (this.isOnline) {
       await this.getRemoteData();
     } else {
@@ -117,15 +132,37 @@ export class NexusRedux<T> {
     }
   }
 
-  public async loadInitialData() {
-    this.checkAndSaveLocalKeys();
+  // NETWORK LISTENER
+  // useEffect(() => {
+  //   const unsubscribe: NetInfoSubscription = NetInfo.addEventListener(
+  //     (state: NetInfoState) => {
+  //       if (state.isConnected !== null) {
+  //         setIsOnline(state.isConnected);
+  //       }
+  //     }
+  //   );
+  //   return () => {
+  //     unsubscribe();
+  //   };
+  // }, [])
 
-    if (this.isOnline) {
-      await this.getRemoteData();
-    } else {
-      await this.getLocalData();
-    }
-  }
+  // useEffect(() => {
+  //   if (isOnline === null) {
+  //     return;
+  //   }
+  //   if (!isOnline) {
+  //     // HERE THE MANUAL HANDLE FUNCTION
+  //     setBackOnLine(true);
+  //     return;
+  //   }
+
+  //   // HERE THE AUTOMATIC HANDLE FUNCTION
+  //   if (props.autoRefreshOnBackOnline || !alreadyRemoteLoaded.current) {
+  //     getRemoteData();
+  //   }
+
+  //   props.onBackOnline && props.onBackOnline();
+  // }, [isOnline]);
 
   public async getRemoteData() {
     this.remoteMethods &&
@@ -133,6 +170,11 @@ export class NexusRedux<T> {
       this.remoteMethods
         .GET()
         .then((res) => {
+          // console.log(`DATA GETTED ${this.async_DATA_KEY}| --------------`);
+          // console.log(
+          //   `res  ${this.async_DATA_KEY}|=========>`,
+          //   JSON.stringify(res)
+          // );
           this.alreadyRemoteLoaded = true;
           this.getOfflineDeletedData(res);
         })
@@ -145,6 +187,9 @@ export class NexusRedux<T> {
   }
 
   private getOfflineDeletedData(remoteData: T[]) {
+    // console.log(`REDE TO GET OFFLINE DELETED DATA | --------------`);
+    // console.log(`remoteData |=========>`, JSON.stringify(remoteData));
+
     if (
       this.idAttributeName === undefined ||
       this.modificationDateAttributeName === undefined
@@ -191,7 +236,19 @@ export class NexusRedux<T> {
       .then((localDataString) => {
         if (localDataString) {
           try {
-            const localData: T[] = JSON.parse(localDataString);
+            let localData: T[] = JSON.parse(localDataString);
+            // console.log(`localData X|=========>`, JSON.stringify(localData));
+
+            if (this.getFilterParams && this.getFilterParams.orderBy) {
+              const { key, order } = this.getFilterParams.orderBy;
+              localData = localData.sort((a, b) => {
+              const valueA = a[key];
+              const valueB = b[key];
+              if (valueA < valueB) return order === 'asc' ? -1 : 1;
+              if (valueA > valueB) return order === 'asc' ? 1 : -1;
+              return 0;
+              });
+            }
 
             this.data = localData;
 
@@ -203,7 +260,7 @@ export class NexusRedux<T> {
             };
           }
         } else {
-          // console.log(`NO LOCAL DATA | --------------`)
+          console.log(`NO LOCAL DATA | --------------`);
         }
       })
       .catch((err: any) => {
@@ -388,8 +445,7 @@ export class NexusRedux<T> {
               return itemDeleted;
             } catch (err: any) {
               this.consoleDebug &&
-                console.log(`err C|=========>`, JSON.stringify(err));
-
+                // console.log(`err C|=========>`, JSON.stringify(err));
               this.error = `ERROR NEXUSSYNC_020:` + JSON.stringify(err);
               return null;
             }
@@ -437,6 +493,9 @@ export class NexusRedux<T> {
   }
 
   private compareLocalVsRemoteData(remoteData: T[], dataToDelete: string[]) {
+    // console.log(`ABOUT TO COMPRARE LOCAL VS REMOTE DATA | --------------`);
+    // console.log(`remoteData |=========>`, JSON.stringify(remoteData));
+    // console.log(`dataToDelete |=========>`, JSON.stringify(dataToDelete));
     let dataToCreate: T[] = [];
     let dataToEdit: T[] = [];
     let dataWithoutChanges: T[] = [];
@@ -447,6 +506,14 @@ export class NexusRedux<T> {
     AsyncStorage.getItem(this.async_DATA_KEY)
       .then((localDataString) => {
         if (localDataString) {
+          // console.log(
+          //   `localDataString XXXXX|=========>`,
+          //   JSON.stringify(localDataString)
+          // );
+          // console.log(
+          //   `remoteData yyYYY|=========>`,
+          //   JSON.stringify(remoteData)
+          // );
           try {
             // const localData: T[] = JSON.parse(localDataString);
             const localData: any[] = JSON.parse(localDataString);
@@ -559,7 +626,7 @@ export class NexusRedux<T> {
           }
         } else {
           // If there is nothing local will take all Remote
-          // console.log(`NO HAY LOCAL DATA | --------------`)
+          // console.log(`NO HAY LOCAL DATA | --------------`);
 
           dataWithoutChanges = remoteData;
           _hasDataChanged = true;
@@ -567,10 +634,22 @@ export class NexusRedux<T> {
 
         this.hasDataChanged = _hasDataChanged;
 
+        // console.log(
+        //   `this.isOnline ZZZZ|=========>`,
+        //   JSON.stringify(this.isOnline)
+        // );
+        // console.log(
+        //   `this.syncingData ZZZZ|=========>`,
+        //   JSON.stringify(this.syncingData)
+        // );
         if (this.isOnline && !this.syncingData) {
           this.syncingData = true;
           this.numberOfChangesPending =
             dataToDelete.length + dataToCreate.length + dataToEdit.length;
+
+          // console.log(
+          //   `ABOUT TO SYNC DATA DELETED LOCAL ITEMS | --------------`
+          // );
 
           this.syncDeletedLocalItemsToRemote(
             dataToDelete,
@@ -579,6 +658,11 @@ export class NexusRedux<T> {
             dataWithoutChanges
           );
         } else {
+          // console.log(`SETTING THIS.DATA | --------------`);
+          // console.log(
+          //   `dataWithoutChanges |=========>`,
+          //   JSON.stringify(dataWithoutChanges)
+          // );
           // console.log(`localData |=========>`, JSON.stringify(localData))
           // this.data = dataWithoutChanges
           // this.startLoadData()
@@ -595,6 +679,7 @@ export class NexusRedux<T> {
 	*/
   public refreshData() {
     // if (!isOnline) {
+    // console.log(`AOBUT TO REFRESH DATA GET LOCAL DATA 111 | --------------`);
     this.getLocalData();
     // } else {
     // getRemoteData && getRemoteData();
@@ -603,8 +688,10 @@ export class NexusRedux<T> {
   }
 
   public syncData(isOnline: boolean, callbackFunction?: () => void) {
+    // console.log(`isOnline PARA SYNC DATA|=========>`, JSON.stringify(isOnline));
     this.isOnline = isOnline;
     if (isOnline) {
+      // console.log(`ABOUT TO SYNC DATA | --------------`);
       this.getRemoteData();
       callbackFunction && callbackFunction();
     }
@@ -617,6 +704,8 @@ export class NexusRedux<T> {
     // if(!this.hasDataChanged){
     //   return
     // }
+    // console.log(`xxxxxXXX ABOUT TO SYNC LOCAL DATA | --------------`);
+    // console.log(`props.data |=========>`, JSON.stringify(this.data));
     await AsyncStorage.setItem(this.async_DATA_KEY, JSON.stringify(this.data));
   }
 
@@ -666,6 +755,8 @@ export class NexusRedux<T> {
     this.loading = true;
 
     // CREATE ITEM
+    // console.log(`isOnline |=========>`, JSON.stringify(isOnline));
+    // console.log('SAVING ');
     if (isOnline && this.remoteMethods && this.remoteMethods.CREATE) {
       try {
         this.hasDataChanged = true;
@@ -690,12 +781,14 @@ export class NexusRedux<T> {
         return Promise.reject(`ERROR NEXUSSYNC_011:` + JSON.stringify(err));
       }
     } else {
-      // ONLY SAVE IN LOCAL OFFLINE7
+      // ONLY SAVE IN LOCAL OFFLINE
+      // console.log('SAVING LOCAL');
 
       if (
         this.idAttributeName !== undefined &&
         this.modificationDateAttributeName
       ) {
+        // console.log(`TO CREATE OFFLINE SSSSSS | --------------`);
         const currentDate = new Date();
         const formattedDate = currentDate
           .toISOString()
@@ -712,6 +805,8 @@ export class NexusRedux<T> {
 
         this.data = [...this.data, newItem];
 
+        // console.log(`ABOUT TO CALL CALLBACK FUNTION | --------------`);
+
         if (this.idAttributeName) {
           try {
             callbackFunction &&
@@ -719,9 +814,11 @@ export class NexusRedux<T> {
                 item[this.idAttributeName] as string,
                 newItem[this.idAttributeName] as string
               );
-          } catch (err) {}
+          } catch (err) {
+            // console.log(`err ZZZZZZZZ|=========>`, err);
+          }
         }
-
+        // console.log(`ABOUT TO UPDATE LOCAL DATA | --------------`);
         this.updateLocalData();
         this.loading = false;
         return newItem;
@@ -756,6 +853,8 @@ export class NexusRedux<T> {
 
     this.loading = true;
 
+    // console.log(`item |=========>`, JSON.stringify(item));
+
     // UPDATE ITEM
     if (isOnline && this.remoteMethods && this.remoteMethods.UPDATE) {
       try {
@@ -783,6 +882,7 @@ export class NexusRedux<T> {
         return Promise.reject(`ERROR NEXUSSYNC_012:` + JSON.stringify(err));
       }
     } else {
+      // console.log(`UPDATING ITEM LOCALLLY | --------------`);
       // ONLY SAVE IN LOCAL OFFLINE
       const currentDate = new Date();
       const formattedDate = currentDate
@@ -797,10 +897,18 @@ export class NexusRedux<T> {
       };
       editedItem[this.modificationDateAttributeName] = formattedDate;
 
+      // console.log(`editedItem |=========>`, JSON.stringify(editedItem));
+
+      // console.log(`this.data |=========>`, JSON.stringify(this.data));
+      // console.log(
+      //   `item?.[this.idAttributeName] as string |=========>`,
+      //   JSON.stringify(item?.[this.idAttributeName] as string)
+      // );
       this.data = this.updateItemFromContext(
         item?.[this.idAttributeName] as string,
         editedItem
       );
+      // console.log(`this.data |=========>`, JSON.stringify(this.data));
 
       if (this.idAttributeName) {
         callbackFunction &&

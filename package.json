@@ -1,6 +1,6 @@
 {
   "name": "react-native-nexus-redux-sync",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Library that makes your App works Offline with auto Sync",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -30,7 +30,6 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
-    "prepack": "bob build",
     "release": "release-it",
     "example": "yarn --cwd example",
     "bootstrap": "yarn example && yarn install"
@@ -71,8 +70,7 @@
     "react": "18.2.0",
     "react-native": "0.72.4",
     "react-native-builder-bob": "^0.20.0",
-    "release-it": "^15.0.0",
-    "typescript": "^5.0.2"
+    "release-it": "^15.0.0"
   },
   "resolutions": {
     "@types/react": "17.0.21"
